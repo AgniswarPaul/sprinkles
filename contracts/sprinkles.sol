@@ -1,11 +1,22 @@
 pragma solidity ^0.4.0;
 
-import "https://github.com/souradeep-das/Beereth/node_modules/zeppelin-solidity/contracts/token/ERC721/ERC721Token.sol";
-import "https://github.com/souradeep-das/Beereth/node_modules/zeppelin-solidity/contracts/ownership/Ownable.sol";
+import "https://github.com/souradeep-das/sprinkles/node_modules/zeppelin-solidity/contracts/token/ERC721/ERC721Token.sol";
+import "https://github.com/souradeep-das/sprinkles/node_modules/zeppelin-solidity/contracts/ownership/Ownable.sol";
 
 contract sprinkles is ERC721Token, Ownable {
   using SafeMath for uint256;
 
+
+ struct room{
+   uint status;
+   address firstplayer;
+   address secondplayer;
+   uint cardid1;
+   uint cardid2;
+   address winner;
+ }
+
+ mapping (address => room) usertoroom;
 
 
   mapping (address => uint) userstatus;
@@ -15,17 +26,7 @@ contract sprinkles is ERC721Token, Ownable {
   string public constant name = "Sprink";
   string public constant symbol = "SPR";
 
-  constructor() ERC721Token(name,symbol) public payable{
-
-    payoffMatrix["Barley"]["Barley"] = 0;
-    payoffMatrix["Barley"]["Yeast"] = 2;
-    payoffMatrix["Barley"]["HOPS"] = 1;
-    payoffMatrix["Yeast"]["Barley"] = 1;
-    payoffMatrix["Yeast"]["Yeast"] = 0;
-    payoffMatrix["Yeast"]["HOPS"] = 2;
-    payoffMatrix["HOPS"]["Barley"] = 2;
-    payoffMatrix["HOPS"]["Yeast"] = 1;
-    payoffMatrix["HOPS"]["HOPS"] = 0;
+  constructor() ERC721Token(name,symbol) public{
 
   }
 
@@ -33,7 +34,7 @@ contract sprinkles is ERC721Token, Ownable {
       require(msg.value>= 0.008 ether);
       for(uint i=0;i<5;i++)
       {
-         uint8 rand2 = uint8(uint256(keccak256(a, block.difficulty))%4);
+         uint8 rand2 = uint8(uint256(keccak256(a, block.difficulty))%5);
          createToken(rand2);
          a=a+7;
 
@@ -45,75 +46,59 @@ contract sprinkles is ERC721Token, Ownable {
       require(msg.value>=0.02 ether);
       for(uint i=0;i<9;i++)
       {
-        uint8 rand2 = uint8(uint256(keccak256(a, block.difficulty))%4);
+        uint8 rand2 = uint8(uint256(keccak256(a, block.difficulty))%5);
          createToken(rand2);
          a=a+49;
       }
-      createToken(4);
+      createToken(7);
       userstatus[msg.sender]=0;
   }
 
-//   function test(uint a) view returns(uint256){
-//       return uint8(uint256(keccak256(a, block.difficulty))%4);
-//   }
 
   string _tokentype;
   function createToken(uint num) public {
 
     if(num==1)
     {
-        _tokentype="Barley";
+        _tokentype="ChocoChip";
     }
     else if(num==2)
     {
-        _tokentype="Yeast";
+        _tokentype="Caramel";
     }
     else if(num==3)
     {
-        _tokentype="HOPS";
+        _tokentype="Peppermint";
+    }
+    else if(num==4)
+    {
+       _tokentype="Vanilla Scoop";
     }
     else
     {
-       _tokentype="Brewery";
+       _tokentype="Dixie Pixies";
     }
     mint(msg.sender,_tokentype);
   }
 
-  function createSpecialToken() public {
-    mint(msg.sender,"Beer");
+bytes32 ad = "0x";
+// 1 = active 2 = not
+  function startbattle(address player2,uint card1,uint card2) public {
+    usertoroom[msg.sender] = room(1,msg.sender,player2,card1,card2,player2);
   }
 
-    // the following function in ERC721BasicToken is inherited
-  // function transferFrom(address _from,address _to,uint256 _tokenId)
-  function battle(address user2,uint cardid)
-  {
-      userstatus[msg.sender]=1;
-      cardstaked[msg.sender]=cardid;
-      if(userstatus[user2] == 1)
-      {
-          uint winner = payoffMatrix[tokenURI(cardid)][tokenURI(cardstaked[user2])];
-          if (winner ==1)
-          {
-              userstatus[msg.sender]=3;
-              userstatus[user2]=2;
-          }
-          else if (winner ==2)
-          {
-              userstatus[msg.sender]=2;
-              userstatus[user2]=3;
-          }
-      }
+  function endbattle() public {
+    usertoroom[msg.sender].status = 2;
+    transferFrom(msg.sender,usertoroom[msg.sender].secondplayer,usertoroom[msg.sender].cardid1);
+    createSpecialToken(usertoroom[msg.sender].secondplayer);
+  }
+  function createSpecialToken(address towner) public {
+    mint(towner,"Dragon Card");
   }
 
-  function completebattle(address user2,uint cardid)
-  {
-      if(userstatus[msg.sender]==2)
-      {
-          transferFrom(msg.sender,user2,cardid);
-          cardstaked[msg.sender]=0;
-      }
+  function createSpecialToken2() public {
+    mint(msg.sender,"Golden Combo");
   }
-
 
   function mint(address _to,string _tokenURI) internal {
     uint256 newTokenId = _getNextTokenId();
@@ -135,24 +120,35 @@ contract sprinkles is ERC721Token, Ownable {
 
   }
 
-  function GenerateBeer(uint barleyid,uint yeastid, uint hopsid, uint breweryid) {
-    require(sha3(tokenURI(barleyid))==sha3('Barley'));
-    require(sha3(tokenURI(yeastid))==sha3('Yeast'));
-    require(sha3(tokenURI(hopsid))==sha3('HOPS'));
-    require(sha3(tokenURI(breweryid))==sha3('Brewery'));
-    createSpecialToken();
-    _burn(msg.sender,barleyid);
-    _burn(msg.sender,yeastid);
-    _burn(msg.sender,hopsid);
-    _burn(msg.sender,breweryid);
+  function GenerateIcecream(uint a,uint b, uint c, uint d) {
+    createSpecialToken2();
+    _burn(msg.sender,a);
+    _burn(msg.sender,b);
+    _burn(msg.sender,c);
+    _burn(msg.sender,d);
 
   }
+
+  /* function GenerateIcecream(uint a,uint b, uint c) {
+    createSpecialToken2();
+    _burn(msg.sender,a);
+    _burn(msg.sender,b);
+    _burn(msg.sender,c);
+
+  }
+
+  function GenerateIcecream(uint a,uint b) {
+    createSpecialToken2();
+    _burn(msg.sender,a);
+    _burn(msg.sender,b);
+
+  } */
 
   function getMyTokens() external view returns(uint256[]){
     return ownedTokens[msg.sender];
   }
 
-  function getcardformat(uint cardid) constant returns(uint,string){
+  function getcardformat(uint cardid) view returns(uint,string){
       return (cardid,tokenURI(cardid));
   }
 
